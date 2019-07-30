@@ -1,6 +1,6 @@
 /* eslint-disable no-magic-numbers, no-native-reassign, no-global-assign*/
 /* exported setup, draw, preload, brickimg, paddleImg*/
-/* global SSCD, Brick, PADDLE_WIDTH, PADDLE_HEIGHT, Player*/
+/* global SSCD, Brick, PADDLE_WIDTH, PADDLE_HEIGHT, Player, BRICK_WIDTH, BRICK_HEIGHT*/
 "use strict";
 
 const WIDTH = 800;
@@ -8,8 +8,11 @@ const HEIGHT = 600;
 
 const BALL_DIAMETER = 22;
 const BALL_RADIUS = BALL_DIAMETER / 2;
-const SPEED_UP = 0.75;
+const SPEED_UP = 0.1;
+const OFFSET_X = 4;
+const OFFSET_Y = 64;
 
+let score = 0;
 let lifes = 3;
 let ball;
 let trueSpeed;
@@ -17,30 +20,45 @@ let world;
 let player;
 let bricks;
 let ballImg;
+let brickcount;
+
+const LEVEL_1 = {
+    "bricks": 36,
+    "level": [
+        [true, true, true, true, true, true, true, true, true, true, true, true],
+        [true, true, true, true, true, true, true, true, true, true, true, true],
+        [true, true, true, true, true, true, true, true, true, true, true, true]
+    ]
+};
 
 function preload() {
-    brickimg = loadImage("assets/img/element_blue_rectangle.png");
-    paddleImg = loadImage("assets/img/paddleBlu.png");
+    Brick.img = loadImage("assets/img/element_blue_rectangle.png");
+    Player.img = loadImage("assets/img/paddleBlu.png");
     ballImg = loadImage("assets/img/ballBlue.png");
 }
 
 function setup() {
     createCanvas(WIDTH, HEIGHT);
     background(255);
-    world = new SSCD.World({"grid_size": 400});
-
-    setupWalls();
-
-    player = new Player(WIDTH / 2, HEIGHT - PADDLE_HEIGHT, world, WIDTH, HEIGHT);
-
     reset();
-    world.add(ball.collisionShape);
+    textAlign(CENTER);
 }
 
 function draw() {
     handlePhysics();
 
     background(0);
+    if (brickcount === 0) {
+        push();
+        fill(255, 0, 0);
+        textSize(100);
+        text(`YOU WIN!!!`, WIDTH / 2, HEIGHT / 2 - 50);
+        text(`Score: ${score}`, WIDTH / 2, HEIGHT / 2 + 50);
+        pop();
+        noLoop();
+
+        return;
+    }
 
     // Draw Game
     player.draw();
@@ -48,12 +66,19 @@ function draw() {
     bricks.forEach((brick) => {
         brick.draw();
     });
+
+    // Draw Score
+    push();
+    fill(255, 0, 0);
+    textSize(30);
+    text(`Score: ${score}`, 100, 50);
+    text(`Lifes: ${lifes}`, 650, 50);
+    pop();
 }
 
 function handlePhysics() {
     player.handleMovement();
     handleBallMovement();
-
     const collobj = world.pick_object(ball.collisionShape);
 
     if (collobj !== null) {
@@ -70,15 +95,33 @@ function resetBall() {
         "velo": createVector(-0.5, 1)
     };
     ball.collisionShape = new SSCD.Circle(ball.pos, BALL_RADIUS);
-    trueSpeed = 3.0;
+    trueSpeed = 5.0;
     ball.velo.normalize();
+    world.add(ball.collisionShape);
 }
 
 function reset() {
+    score = 0;
+    lifes = 3;
+    brickcount = LEVEL_1.bricks;
+    Brick.resetID();
+    world = new SSCD.World({"grid_size": 400});
+    setupWalls();
+
+    player = new Player(WIDTH / 2, HEIGHT - PADDLE_HEIGHT, world, WIDTH, HEIGHT);
     resetBall();
     bricks = [];
-    bricks.push(new Brick(30, 50, world, 0));
-    bricks.push(new Brick(90, 50, world, 1));
+    for (let y = 0; y < LEVEL_1.level.length; y++) {
+        for (let x = 0; x < LEVEL_1.level[y].length; x++) {
+            if (LEVEL_1.level[y][x]) {
+                bricks.push(new Brick(
+                    OFFSET_X + x * (BRICK_WIDTH + 2),
+                    OFFSET_Y + y * (BRICK_HEIGHT + 2),
+                    world
+                ));
+            }
+        }
+    }
 }
 
 
@@ -148,10 +191,13 @@ function handleCollisionBricks(collobj) {
         ball.velo.y *= -1;
     }
     trueSpeed += SPEED_UP;
+    score += 5;
+    brickcount -= 1;
 }
 
 function lifeLost() {
     lifes -= 1;
+    world.remove(ball.collisionShape);
     if (lifes === 0) {
         reset();
     } else {

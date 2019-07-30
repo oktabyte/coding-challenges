@@ -1,11 +1,10 @@
-/* global SSCD, LEFT_ARROW, RIGHT_ARROW */
+/* global SSCD */
 /* exported Player */
 "use strict";
 
 const PADDLE_HEIGHT = 24;
 const PADDLE_WIDTH = 104;
 const PADDLE_SPEED = 5;
-let paddleImg;
 
 class Player {
     constructor(posx, posy, world, WORLD_WIDTH, WORLD_HEIGHT) {
@@ -19,11 +18,11 @@ class Player {
     }
 
     draw() {
-        image(paddleImg, this.pos.x, this.pos.y);
+        image(Player.img, this.pos.x, this.pos.y);
     }
 
     move(x, y) {
-        this.pos.x = constrain(x, 0, this.WORLD_WIDTH);
+        this.pos.x = constrain(x, 0, this.WORLD_WIDTH - PADDLE_WIDTH);
         this.pos.y = constrain(y, 0, this.WORLD_HEIGHT);
         this.collisionShape.set_position(this.pos);
     }
@@ -42,3 +41,5 @@ class Player {
         }
     }
 }
+
+Player.prototype.img = null;
